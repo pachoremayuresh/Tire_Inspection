@@ -8,7 +8,7 @@ import numpy as np
 
 # Reading the Images
 
-Tire = o3d.io.read_point_cloud("Tire_3D_Images/negative_4.pcd")
+Tire = o3d.io.read_point_cloud("/home/mayuresh/Desktop/Image_Processing/Tire_Inspection/Tire_3D_Images/Positive.pcd")
 print(Tire)
 
 
