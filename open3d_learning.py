@@ -1,179 +1,66 @@
 import open3d as o3d
 import numpy as np
 import copy
+from matplotlib.path import Path
 
 import matplotlib.pyplot as plt
 
+def generate_random_pointcloud():
+    angles = np.random.uniform(80, 100, 4)  # Random angles in degrees
+    angles = np.deg2rad(angles)  # Convert to radians
+    lengths = np.random.uniform(1, 5, 4)  # Random lengths for each side
 
+    points = [(0, 0, 0)]  # Start at origin
+    current_angle = 0
 
+    for i in range(4):
+        x = points[-1][0] + lengths[i] * np.cos(current_angle)
+        y = points[-1][1] + lengths[i] * np.sin(current_angle)
+        points.append((x, y, 0))
+        current_angle += angles[i]
 
+    # Ensure the shape closes by removing the last duplicate point
+    points = points[:-1]
 
-# Create a rectangle-shaped point cloud
-width = 1.0  # 100 cm
-height = 0.5  # 50 cm
-num_points_width = 100
-num_points_height = 50
+    return np.array(points)
 
-# Generate points for the rectangle
-x = np.linspace(0, width, num_points_width)
-y = np.linspace(0, height, num_points_height)
-xx, yy = np.meshgrid(x, y)
-points = np.vstack((xx.ravel(), yy.ravel(), np.zeros_like(xx.ravel()))).T
+def fill_polygon_with_points(polygon, density=100):
+    # Generate a grid of points within the bounding box of the polygon
+    x_min, y_min = np.min(polygon[:, :2], axis=0)
+    x_max, y_max = np.max(polygon[:, :2], axis=0)
 
-# Create Open3D point cloud object
+    x_range = np.linspace(x_min, x_max, int((x_max - x_min) * density))
+    y_range = np.linspace(y_min, y_max, int((y_max - y_min) * density))
+    grid_x, grid_y = np.meshgrid(x_range, y_range)
+    grid_points = np.c_[grid_x.ravel(), grid_y.ravel()]
+
+    # Check which points are inside the polygon
+    path = Path(polygon[:, :2])
+    mask = path.contains_points(grid_points)
+
+    # Return the points inside the polygon
+    filled_points = grid_points[mask]
+    return np.c_[filled_points, np.zeros(filled_points.shape[0])]
+
+# Generate the polygon
+polygon = generate_random_pointcloud()
+
+# Fill the polygon with points
+filled_points = fill_polygon_with_points(polygon)
+
+# Create Open3D PointCloud object
 point_cloud = o3d.geometry.PointCloud()
-point_cloud.points = o3d.utility.Vector3dVector(points)
+point_cloud.points = o3d.utility.Vector3dVector(filled_points)
 
 # Visualize the point cloud
 o3d.visualization.draw_geometries([point_cloud])
 
 
+# Perform voxel down sampling
+voxel_size = 0.05  # Adjust the voxel size as needed
+downsampled_point_cloud = point_cloud.voxel_down_sample(voxel_size=voxel_size)
 
-# Add random height variations to some points
-num_points_to_modify = int(0.1 * len(points))  # Modify 10% of the points
-indices_to_modify = np.random.choice(len(points), num_points_to_modify, replace=False)
-height_variations = np.random.uniform(-0.01, 0.01, num_points_to_modify)  # Height difference of ±1 cm
-
-# Apply height variations
-points[indices_to_modify, 2] += height_variations
-
-# Update the point cloud with modified points
-point_cloud.points = o3d.utility.Vector3dVector(points)
-
-rectangle = point_cloud
-
-# Visualize the modified point cloud
-o3d.visualization.draw_geometries([point_cloud])
-
-
-
-# Create a parallelogram-shaped point cloud
-angle = np.radians(60)  # 60 degrees in radians
-width = 1.0  # 100 cm
-height = 0.5  # 50 cm
-num_points_width = 100
-num_points_height = 50
-
-# Generate points for the parallelogram
-x = np.linspace(0, width, num_points_width)
-y = np.linspace(0, height, num_points_height)
-xx, yy = np.meshgrid(x, y)
-
-# Apply the parallelogram transformation
-xx_transformed = xx + yy * np.tan(angle)
-points_parallelogram = np.vstack((xx_transformed.ravel(), yy.ravel(), np.zeros_like(xx.ravel()))).T
-
-# Create Open3D point cloud object for the parallelogram
-parallelogram_point_cloud = o3d.geometry.PointCloud()
-parallelogram_point_cloud.points = o3d.utility.Vector3dVector(points_parallelogram)
-
-# Visualize the parallelogram point cloud
-o3d.visualization.draw_geometries([parallelogram_point_cloud])
-
-
-
-
-
-# Transform the rectangle to a parallelogram with a 60-degree angle
-rectangle_points = np.asarray(rectangle.points)
-
-# Apply the parallelogram transformation
-rectangle_points[:, 0] += rectangle_points[:, 1] * np.tan(angle)
-
-# Update the rectangle point cloud with transformed points
-rectangle.points = o3d.utility.Vector3dVector(rectangle_points)
-
-# Visualize the transformed parallelogram point cloud
-o3d.visualization.draw_geometries([rectangle])
-
-# Calculate the width and height of the parallelogram
-rectangle_points = np.asarray(rectangle.points)
-
-# Find the minimum and maximum x and y coordinates
-min_x, max_x = np.min(rectangle_points[:, 0]), np.max(rectangle_points[:, 0])
-min_y, max_y = np.min(rectangle_points[:, 1]), np.max(rectangle_points[:, 1])
-
-# Calculate width and height
-parallelogram_width = max_x - min_x
-parallelogram_height = max_y - min_y
-
-print(f"Parallelogram Width: {parallelogram_width}")
-print(f"Parallelogram Height: {parallelogram_height}")
-
-# Cut a square of 50 * 50 cm from the center of the parallelogram
-center_x = parallelogram_width / 2
-center_y = parallelogram_height / 2
-half_square_size = 0.25  # 50 cm / 2
-
-# Extract points within the square
-rectangle_points = np.asarray(rectangle.points)
-mask = (
-    (rectangle_points[:, 0] >= center_x - half_square_size) &
-    (rectangle_points[:, 0] <= center_x + half_square_size) &
-    (rectangle_points[:, 1] >= center_y - half_square_size) &
-    (rectangle_points[:, 1] <= center_y + half_square_size)
-)
-
-# Create a new point cloud for the square
-image1_points = rectangle_points[mask]
-image1 = o3d.geometry.PointCloud()
-image1.points = o3d.utility.Vector3dVector(image1_points)
-
-# Visualize the square
-o3d.visualization.draw_geometries([image1])
-
-# Create a point cloud for the remaining parallelogram
-remaining_points = rectangle_points[~mask]
-remaining_parallelogram = o3d.geometry.PointCloud()
-remaining_parallelogram.points = o3d.utility.Vector3dVector(remaining_points)
-
-# Visualize the remaining parallelogram
-o3d.visualization.draw_geometries([remaining_parallelogram])
-
-
-# Stretch/shrink image1 to fill an 80 * 30 cm rectangle
-target_width = 0.8  # 80 cm
-target_height = 0.3  # 30 cm
-
-# Get the current bounds of image1
-image1_points = np.asarray(image1.points)
-min_x, max_x = np.min(image1_points[:, 0]), np.max(image1_points[:, 0])
-min_y, max_y = np.min(image1_points[:, 1]), np.max(image1_points[:, 1])
-
-# Calculate scaling factors
-scale_x = target_width / (max_x - min_x)
-scale_y = target_height / (max_y - min_y)
-
-# Apply scaling
-image1_points[:, 0] = (image1_points[:, 0] - min_x) * scale_x
-image1_points[:, 1] = (image1_points[:, 1] - min_y) * scale_y
-
-# Update the point cloud
-image1.points = o3d.utility.Vector3dVector(image1_points)
-
-# Create rectangle border point clouds
-border_points = []
-
-# Bottom border
-border_points.append(np.column_stack((np.linspace(0, target_width, 100), np.zeros(100), np.zeros(100))))
-
-# Top border
-border_points.append(np.column_stack((np.linspace(0, target_width, 100), np.full(100, target_height), np.zeros(100))))
-
-# Left border
-border_points.append(np.column_stack((np.zeros(100), np.linspace(0, target_height, 100), np.zeros(100))))
-
-# Right border
-border_points.append(np.column_stack((np.full(100, target_width), np.linspace(0, target_height, 100), np.zeros(100))))
-
-# Combine all border points
-border_points = np.vstack(border_points)
-
-# Create Open3D point cloud for the border
-border_point_cloud = o3d.geometry.PointCloud()
-border_point_cloud.points = o3d.utility.Vector3dVector(border_points)
-
-# Visualize the stretched/shrunk image1 with the rectangle border
-o3d.visualization.draw_geometries([image1, border_point_cloud])
+# Visualize the downsampled point cloud
+o3d.visualization.draw_geometries([downsampled_point_cloud])
 
 

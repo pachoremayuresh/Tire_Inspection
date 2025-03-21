@@ -3,66 +3,102 @@
 
 import open3d as o3d
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 
 # Reading the Images
+Tire = o3d.io.read_point_cloud("Tire_3D_Images/negative_1.pcd")
+# Tire = o3d.io.read_point_cloud("Tire_3D_Images/negative_2.pcd")
+# Tire = o3d.io.read_point_cloud("Tire_3D_Images/negative_3.pcd")
+# Tire = o3d.io.read_point_cloud("Tire_3D_Images/negative_4.pcd")
+# Tire = o3d.io.read_point_cloud("Tire_3D_Images/negative_5.pcd")
+# Tire = o3d.io.read_point_cloud("Tire_3D_Images/negative_6.pcd")
+# Tire = o3d.io.read_point_cloud("Tire_3D_Images/negative_7.pcd")
+# Tire = o3d.io.read_point_cloud("Tire_3D_Images/negative_8.pcd")
+# Tire = o3d.io.read_point_cloud("Tire_3D_Images/Ideal_Image.pcd")
 
-Tire = o3d.io.read_point_cloud("/home/mayuresh/Desktop/Image_Processing/Tire_Inspection/Tire_3D_Images/Positive.pcd")
 print(Tire)
 
+# Find the point with minimum x and minimum y values
+
+# Perform voxel down sampling
+voxel_size = 1.5  # Set the voxel size
+downsampled_tire = Tire.voxel_down_sample(voxel_size)
+
+# Print the downsampled point cloud
+print("Downsampled point cloud:")
+print(downsampled_tire)
+
+# Convert the point cloud to a numpy array
+points = np.asarray(downsampled_tire.points)
+
+# Find the minimum y value
+y_min = np.min(points[:, 1])
+
+# Define the range for y values
+y_range_min = y_min
+y_range_max = y_min + 1.5
+
+# Filter points within the specified y range
+mask = (points[:, 1] >= y_range_min) & (points[:, 1] <= y_range_max)
+
+# Create colors for the points
+colors = np.zeros_like(points)  # Initialize all colors to black
+colors[:, 1] = 1.0  # Set all points to green
+colors[mask] = [0, 0, 0]  # Set points in the range to black
+
+# Exclude the black points from the downsampled_tire
+remaining_points = points[~mask]
+
+# Find the next minimum y value in the remaining points
+if len(remaining_points) > 0:
+    y_min_next = np.min(remaining_points[:, 1])
+
+    # Define the range for the next y values
+    y_range_min_next = y_min_next
+    y_range_max_next = y_min_next + 1.5
+
+    # Filter points within the next specified y range
+    mask_next = (remaining_points[:, 1] >= y_range_min_next) & (remaining_points[:, 1] <= y_range_max_next)
+
+    # Set points in the next range to red
+    colors_next = np.zeros_like(remaining_points)
+    colors_next[:, 1] = 1.0  # Default green
+    colors_next[mask_next] = [1, 0, 0]  # Red for the next range
+
+    # Combine the colors back
+    colors[~mask] = colors_next
+
+# Assign the colors to the point cloud
+downsampled_tire.colors = o3d.utility.Vector3dVector(colors)
+
+# Visualize the point cloud
+o3d.visualization.draw_geometries([downsampled_tire])
 
 
-
-
-
-
-# Downsampling the Images
-
-# Voxel downsampling voxel size test
 '''
-voxel_sizes = [0.05, 0.1,0.2, 0.3, 0.4]
-for voxel_size in voxel_sizes:
-    downpcd_tire = tire.voxel_down_sample(voxel_size=voxel_size)
-    print(f"Downsampled point cloud size with voxel size {voxel_size}: {len(downpcd_tire.points)}")
-    o3d.visualization.draw_geometries([downpcd_tire], zoom=0.3412, front=[0.4257, -0.2125, -0.8795], 
-                                      lookat=[2.6172, 2.0475, 1.532], up=[-0.0694, -0.9768, 0.2024])
+points = np.asarray(downsampled_tire.points)
 
-# There was a significant downsampling only after 0.2 voxel size since the point cloud image was very dense
+# Find the minimum y value
+y_min = np.min(points[:, 1])
 
+# Define the range for y values
+y_range_min = y_min
+y_range_max = y_min + 1.5
 
-voxel_sizes = [0.9, 1.0, 1.5, 2.0, 2.5, 3.0]
-for voxel_size in voxel_sizes:
-    downpcd_tire = tire.voxel_down_sample(voxel_size=voxel_size)
-    print(f"Downsampled point cloud size with voxel size {voxel_size}: {len(downpcd_tire.points)}")
-    o3d.visualization.draw_geometries([downpcd_tire], zoom=0.3412, front=[0.4257, -0.2125, -0.8795], 
-                                      lookat=[2.6172, 2.0475, 1.532], up=[-0.0694, -0.9768, 0.2024])
+# Filter points within the specified y range
+mask = (points[:, 1] >= y_range_min) & (points[:, 1] <= y_range_max)
 
-# After Testing the voxel sizes in increasing order it was observed that after voxel size 2.0 the point cloud image was lossing significant Data.
-# Hence the optimal voxel size for downsampling the image could be anything between 1.5 and 2.0
-# Since we are trying to find the smallest possible defect the lover limit would retain more data hence we choice voxel size = 1.5
-# The optimal voxel size for downsampling the image is 1.5
+# Create colors for the points
+colors = np.zeros_like(points)  # Initialize all colors to black
+colors[:, 1] = 1.0  # Set all points to green
+colors[mask] = [0, 0, 0]  # Set points in the range to black
+
+# Assign the colors to the point cloud
+downsampled_tire.colors = o3d.utility.Vector3dVector(colors)
+
+# Visualize the point cloud
+o3d.visualization.draw_geometries([downsampled_tire])
 
 '''
-
-Tire = Tire.voxel_down_sample(voxel_size=0.2)
-print(Tire)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#Visualizing the Images
-
-o3d.visualization.draw_geometries([Tire])
