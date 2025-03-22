@@ -9,11 +9,11 @@ import matplotlib.pyplot as plt
 
 # Read the PCD file
 
-#tire = o3d.io.read_point_cloud("Tire_3D_Images/negative_1.pcd")
+tire = o3d.io.read_point_cloud("Tire_3D_Images/negative_1.pcd")
 #tire = o3d.io.read_point_cloud("Tire_3D_Images/negative_2.pcd")
 #tire = o3d.io.read_point_cloud("Tire_3D_Images/negative_3.pcd")
 #tire = o3d.io.read_point_cloud("Tire_3D_Images/negative_4.pcd")
-tire = o3d.io.read_point_cloud("Tire_3D_Images/negative_5.pcd")
+#tire = o3d.io.read_point_cloud("Tire_3D_Images/negative_5.pcd")
 #tire = o3d.io.read_point_cloud("Tire_3D_Images/negative_6.pcd")
 #tire = o3d.io.read_point_cloud("Tire_3D_Images/negative_7.pcd")
 #tire = o3d.io.read_point_cloud("Tire_3D_Images/negative_8.pcd")
